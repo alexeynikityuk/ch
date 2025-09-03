@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Companies House Search</title>
+    
+    <!-- Material Design CSS -->
+    <link href="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --mdc-theme-primary: #1976d2;
+            --mdc-theme-secondary: #424242;
+            --mdc-theme-error: #d32f2f;
+            --mdc-theme-success: #388e3c;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f5;
+            color: #212121;
+        }
+        
+        .app-bar {
+            background-color: var(--mdc-theme-primary);
+            color: white;
+            padding: 16px 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            margin-bottom: 24px;
+        }
+        
+        .app-bar h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 400;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+        
+        .search-card {
+            margin-bottom: 24px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            padding: 24px;
+        }
+        
+        .form-field {
+            width: 100%;
+        }
+        
+        .checkbox-group {
+            margin-top: 8px;
+        }
+        
+        .checkbox-group-title {
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.6);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .mdc-form-field {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .button-group {
+            padding: 16px 24px;
+            display: flex;
+            gap: 16px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .results-card {
+            display: none;
+        }
+        
+        .results-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .results-header h2 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 500;
+        }
+        
+        .export-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .data-table-container {
+            overflow-x: auto;
+        }
+        
+        .mdc-data-table {
+            width: 100%;
+            border: none;
+        }
+        
+        .status-chip {
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        
+        .status-chip.active {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .status-chip.dissolved {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .status-chip.other {
+            background-color: #f3e5f5;
+            color: #6a1b9a;
+        }
+        
+        .pagination {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 24px;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .page-info {
+            color: rgba(0, 0, 0, 0.6);
+            font-size: 14px;
+        }
+        
+        /* SIC Code Autocomplete Styles */
+        .sic-autocomplete {
+            position: relative;
+        }
+        
+        .sic-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sic-suggestion-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f5f5f5;
+            transition: background-color 0.2s;
+        }
+        
+        .sic-suggestion-item:hover {
+            background-color: #f5f5f5;
+        }
+        
+        .sic-suggestion-code {
+            font-weight: 600;
+            color: var(--mdc-theme-primary);
+            margin-right: 8px;
+        }
+        
+        .sic-suggestion-desc {
+            color: rgba(0, 0, 0, 0.87);
+            font-size: 14px;
+        }
+        
+        .selected-sic-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        
+        .mdc-chip {
+            cursor: default;
+        }
+        
+        .error-banner {
+            display: none;
+            margin-bottom: 24px;
+        }
+        
+        .mdc-text-field--filled {
+            background-color: #f5f5f5;
+        }
+        
+        .mdc-text-field--filled:not(.mdc-text-field--disabled) .mdc-text-field__input {
+            background-color: #f5f5f5;
+        }
+        
+        .mdc-data-table__cell .mdc-button--dense {
+            height: 28px;
+            font-size: 12px;
+            padding: 0 8px;
+        }
+        
+        .mdc-data-table__cell .mdc-button__icon {
+            font-size: 16px;
+            margin-right: 4px;
+        }
+        
+        .mdc-text-field-helper-text {
+            font-size: 12px;
+            margin-top: 4px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-bar">
+        <div class="container">
+            <h1>Companies House Search</h1>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Error Banner -->
+        <div class="mdc-banner error-banner" id="errorBanner">
+            <div class="mdc-banner__content">
+                <div class="mdc-banner__text" id="errorMessage"></div>
+            </div>
+            <div class="mdc-banner__actions">
+                <button type="button" class="mdc-banner__secondary-action mdc-icon-button material-icons" onclick="hideError()">close</button>
+            </div>
+        </div>
+        
+        <!-- Search Form -->
+        <div class="mdc-card search-card">
+            <form id="searchForm">
+                <div class="form-grid">
+                    <!-- Keyword Field -->
+                    <div class="form-field">
+                        <label class="mdc-text-field mdc-text-field--outlined mdc-text-field--with-leading-icon">
+                            <i class="material-icons mdc-text-field__icon mdc-text-field__icon--leading" tabindex="0" role="button">search</i>
+                            <span class="mdc-text-field__ripple"></span>
+                            <span class="mdc-floating-label" id="keyword-label">Keyword (Required)</span>
+                            <input class="mdc-text-field__input" type="text" id="keyword" name="keyword" required
+                                   aria-labelledby="keyword-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__notch">
+                                </span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <!-- Company Status Checkboxes -->
+                    <div class="form-field">
+                        <div class="checkbox-group">
+                            <div class="checkbox-group-title">Company Status</div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="status-active" name="company_status" value="active"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="status-active">Active</label>
+                            </div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="status-dissolved" name="company_status" value="dissolved"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="status-dissolved">Dissolved</label>
+                            </div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="status-liquidation" name="company_status" value="liquidation"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="status-liquidation">Liquidation</label>
+                            </div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="status-administration" name="company_status" value="administration"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="status-administration">Administration</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Company Type Checkboxes -->
+                    <div class="form-field">
+                        <div class="checkbox-group">
+                            <div class="checkbox-group-title">Company Type</div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="type-ltd" name="company_type" value="ltd"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="type-ltd">Limited Company (Ltd)</label>
+                            </div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="type-plc" name="company_type" value="plc"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="type-plc">Public Limited Company (PLC)</label>
+                            </div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="type-llp" name="company_type" value="llp"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="type-llp">LLP</label>
+                            </div>
+                            <div class="mdc-form-field">
+                                <div class="mdc-checkbox">
+                                    <input type="checkbox" class="mdc-checkbox__native-control" id="type-other" name="company_type" value="other"/>
+                                    <div class="mdc-checkbox__background">
+                                        <svg class="mdc-checkbox__checkmark" viewBox="0 0 24 24">
+                                            <path class="mdc-checkbox__checkmark-path" fill="none" d="M1.73,12.91 8.1,19.28 22.79,4.59"/>
+                                        </svg>
+                                        <div class="mdc-checkbox__mixedmark"></div>
+                                    </div>
+                                </div>
+                                <label for="type-other">Other</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Date Range -->
+                    <div class="form-field">
+                        <label class="mdc-text-field mdc-text-field--outlined">
+                            <span class="mdc-text-field__ripple"></span>
+                            <span class="mdc-floating-label" id="from-date-label">Incorporated From</span>
+                            <input class="mdc-text-field__input" type="date" id="incorporated_from" name="incorporated_from"
+                                   aria-labelledby="from-date-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__notch">
+                                    <span class="mdc-floating-label" id="from-date-label-notch">Incorporated From</span>
+                                </span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label class="mdc-text-field mdc-text-field--outlined">
+                            <span class="mdc-text-field__ripple"></span>
+                            <span class="mdc-floating-label" id="to-date-label">Incorporated To</span>
+                            <input class="mdc-text-field__input" type="date" id="incorporated_to" name="incorporated_to"
+                                   aria-labelledby="to-date-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__notch">
+                                    <span class="mdc-floating-label" id="to-date-label-notch">Incorporated To</span>
+                                </span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <!-- Location Fields -->
+                    <div class="form-field">
+                        <label class="mdc-text-field mdc-text-field--outlined">
+                            <span class="mdc-text-field__ripple"></span>
+                            <span class="mdc-floating-label" id="postcode-label">Postcode Prefix</span>
+                            <input class="mdc-text-field__input" type="text" id="postcode_prefix" name="postcode_prefix"
+                                   aria-labelledby="postcode-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__notch">
+                                    <span class="mdc-floating-label" id="postcode-label-notch">Postcode Prefix</span>
+                                </span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                        </label>
+                        <div class="mdc-text-field-helper-line">
+                            <div class="mdc-text-field-helper-text mdc-text-field-helper-text--persistent">e.g., EC2, SW1</div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label class="mdc-text-field mdc-text-field--outlined">
+                            <span class="mdc-text-field__ripple"></span>
+                            <span class="mdc-floating-label" id="locality-label">Locality</span>
+                            <input class="mdc-text-field__input" type="text" id="locality" name="locality"
+                                   aria-labelledby="locality-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__notch">
+                                    <span class="mdc-floating-label" id="locality-label-notch">Locality</span>
+                                </span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                        </label>
+                        <div class="mdc-text-field-helper-line">
+                            <div class="mdc-text-field-helper-text mdc-text-field-helper-text--persistent">e.g., London, Manchester</div>
+                        </div>
+                    </div>
+                    
+                    <!-- SIC Codes with Autocomplete -->
+                    <div class="form-field sic-autocomplete">
+                        <label class="mdc-text-field mdc-text-field--outlined">
+                            <span class="mdc-text-field__ripple"></span>
+                            <span class="mdc-floating-label" id="sic-label">Industry/SIC Codes</span>
+                            <input class="mdc-text-field__input" type="text" id="sic" name="sic"
+                                   aria-labelledby="sic-label">
+                            <span class="mdc-notched-outline">
+                                <span class="mdc-notched-outline__leading"></span>
+                                <span class="mdc-notched-outline__notch">
+                                    <span class="mdc-floating-label" id="sic-label-notch">Industry/SIC Codes</span>
+                                </span>
+                                <span class="mdc-notched-outline__trailing"></span>
+                            </span>
+                        </label>
+                        <div class="mdc-text-field-helper-line">
+                            <div class="mdc-text-field-helper-text mdc-text-field-helper-text--persistent">Type industry terms (e.g., software, finance) or SIC codes</div>
+                        </div>
+                        <div class="sic-suggestions" id="sicSuggestions"></div>
+                        <div class="selected-sic-chips" id="selectedSICCodes"></div>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button type="submit" class="mdc-button mdc-button--raised">
+                        <span class="mdc-button__ripple"></span>
+                        <i class="material-icons mdc-button__icon" aria-hidden="true">search</i>
+                        <span class="mdc-button__label">Search</span>
+                    </button>
+                    <button type="button" class="mdc-button mdc-button--outlined" onclick="resetForm()">
+                        <span class="mdc-button__ripple"></span>
+                        <i class="material-icons mdc-button__icon" aria-hidden="true">clear</i>
+                        <span class="mdc-button__label">Reset</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-card">
+                <div class="mdc-circular-progress" style="width: 48px; height: 48px;" role="progressbar" aria-label="Loading">
+                    <div class="mdc-circular-progress__determinate-container">
+                        <svg class="mdc-circular-progress__determinate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                            <circle class="mdc-circular-progress__determinate-track" cx="24" cy="24" r="18" stroke-width="4"/>
+                            <circle class="mdc-circular-progress__determinate-circle" cx="24" cy="24" r="18" stroke-width="4" stroke-dasharray="113.097" stroke-dashoffset="113.097"/>
+                        </svg>
+                    </div>
+                    <div class="mdc-circular-progress__indeterminate-container">
+                        <div class="mdc-circular-progress__spinner-layer">
+                            <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+                                <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="24" cy="24" r="18" stroke-width="4"/>
+                                </svg>
+                            </div>
+                            <div class="mdc-circular-progress__gap-patch">
+                                <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="24" cy="24" r="18" stroke-width="4"/>
+                                </svg>
+                            </div>
+                            <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+                                <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="24" cy="24" r="18" stroke-width="4"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <span>Searching companies...</span>
+            </div>
+        </div>
+        
+        <!-- Results Table -->
+        <div class="mdc-card results-card" id="resultsCard">
+            <div class="results-header">
+                <h2>Search Results (<span id="totalResults">0</span> companies found)</h2>
+                <div class="export-buttons">
+                    <button class="mdc-button mdc-button--outlined" onclick="exportResults('csv')">
+                        <span class="mdc-button__ripple"></span>
+                        <i class="material-icons mdc-button__icon" aria-hidden="true">download</i>
+                        <span class="mdc-button__label">CSV</span>
+                    </button>
+                    <button class="mdc-button mdc-button--outlined" onclick="exportResults('json')">
+                        <span class="mdc-button__ripple"></span>
+                        <i class="material-icons mdc-button__icon" aria-hidden="true">download</i>
+                        <span class="mdc-button__label">JSON</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="data-table-container">
+                <div class="mdc-data-table">
+                    <div class="mdc-data-table__table-container">
+                        <table class="mdc-data-table__table">
+                            <thead>
+                                <tr class="mdc-data-table__header-row">
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Company Name</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Number</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Status</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Type</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Incorporated</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Location</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Postcode</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">SIC Codes</th>
+                                    <th class="mdc-data-table__header-cell" role="columnheader" scope="col">Link</th>
+                                </tr>
+                            </thead>
+                            <tbody class="mdc-data-table__content" id="resultsTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pagination">
+                <button class="mdc-icon-button material-icons" onclick="previousPage()" id="prevBtn" disabled>
+                    <span class="mdc-icon-button__ripple"></span>
+                    chevron_left
+                </button>
+                <span class="page-info">Page <span id="currentPage">1</span> of <span id="totalPages">1</span></span>
+                <button class="mdc-icon-button material-icons" onclick="nextPage()" id="nextBtn" disabled>
+                    <span class="mdc-icon-button__ripple"></span>
+                    chevron_right
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Material Components Web JS -->
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <script src="sic-codes.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

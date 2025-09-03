@@ -126,9 +126,8 @@ export class CompaniesHouseAPI {
     items: CompanyResult[];
     total: number;
   }> {
-    if (!filters.keyword) {
-      throw new AppError('Keyword is required for search', 400);
-    }
+    // If no keyword provided, use a generic search term
+    const searchKeyword = filters.keyword || '*';
 
     // For filtered searches, we need to fetch more results to apply filters
     // The Companies House API doesn't support all our filters directly
@@ -146,7 +145,7 @@ export class CompaniesHouseAPI {
       
       // Fetch multiple pages to get enough results for filtering
       while (currentPage <= maxPages) {
-        const searchResult = await this.searchCompanies(filters.keyword, currentPage, itemsPerFetch);
+        const searchResult = await this.searchCompanies(searchKeyword, currentPage, itemsPerFetch);
         if (!searchResult.items || searchResult.items.length === 0) break;
         
         allCompanies = allCompanies.concat(searchResult.items);
@@ -170,7 +169,7 @@ export class CompaniesHouseAPI {
       };
     } else {
       // For simple keyword searches without filters, use direct API pagination
-      const searchResult = await this.searchCompanies(filters.keyword, page, pageSize);
+      const searchResult = await this.searchCompanies(searchKeyword, page, pageSize);
       
       // Convert to our format without enrichment (faster for simple searches)
       const items: CompanyResult[] = (searchResult.items || []).map((company: any) => ({

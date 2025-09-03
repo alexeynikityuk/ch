@@ -89,13 +89,11 @@ async function searchCompanies(page = 1) {
     // Build filters object
     const filters = {};
     
-    // Required keyword
+    // Optional keyword
     const keyword = formData.get('keyword');
-    if (!keyword) {
-        showError('Keyword is required for search');
-        return;
+    if (keyword && keyword.trim()) {
+        filters.keyword = keyword.trim();
     }
-    filters.keyword = keyword;
     
     // Get selected checkboxes for company status
     const companyStatus = Array.from(document.querySelectorAll('input[name="company_status"]:checked'))

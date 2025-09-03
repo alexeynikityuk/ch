@@ -116,12 +116,25 @@ export const searchStreamController = async (
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
-      'X-Accel-Buffering': 'no' // Disable Nginx buffering
+      'X-Accel-Buffering': 'no', // Disable Nginx buffering
+      'Access-Control-Allow-Origin': '*'
     });
 
     // Send initial connection message
     res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
     if (res.flush) res.flush();
+    
+    // Set up heartbeat to keep connection alive
+    const heartbeat = setInterval(() => {
+      res.write(': heartbeat\n\n');
+      if (res.flush) res.flush();
+    }, 30000); // Every 30 seconds
+    
+    // Clean up on client disconnect
+    req.on('close', () => {
+      clearInterval(heartbeat);
+      console.log('Client disconnected from SSE stream');
+    });
     
     // Send progress updates
     const progressCallback = (current: number, total: number) => {
@@ -145,20 +158,12 @@ export const searchStreamController = async (
       // Increment daily search counter
       if (pool) {
         try {
-          const today = new Date().toISOString().split('T')[0];
-          const metricsQuery = `
-            INSERT INTO search_metrics (date, search_count, unique_filters)
-            VALUES ($1, 1, $2)
-            ON CONFLICT (date) DO UPDATE 
-            SET search_count = search_metrics.search_count + 1,
-                unique_filters = CASE 
-                  WHEN NOT search_metrics.unique_filters @> $2
-                  THEN search_metrics.unique_filters || $2
-                  ELSE search_metrics.unique_filters
-                END,
-                updated_at = NOW()
-          `;
-          await pool.query(metricsQuery, [today, JSON.stringify([filters])]);
+          await pool.query(`
+            INSERT INTO search_metrics (date, search_count) 
+            VALUES (CURRENT_DATE, 1)
+            ON CONFLICT (date) 
+            DO UPDATE SET search_count = search_metrics.search_count + 1
+          `);
         } catch (metricsError) {
           console.warn('Failed to update search metrics:', metricsError);
         }
@@ -192,10 +197,17 @@ export const searchStreamController = async (
       };
 
       res.write(`data: ${JSON.stringify({ type: 'result', result: response })}\n\n`);
+      clearInterval(heartbeat);
       res.end();
     } catch (error: any) {
-      // Send error
-      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      console.error('SSE search error:', error);
+      // Send error with more detail
+      res.write(`data: ${JSON.stringify({ 
+        type: 'error', 
+        message: error.message || 'Search failed',
+        details: error.response?.data || error.stack
+      })}\n\n`);
+      clearInterval(heartbeat);
       res.end();
     }
   } catch (error) {

@@ -31,8 +31,30 @@ class OfficerService {
     auth: {
       username: process.env.CH_API_KEY || '',
       password: ''
-    }
+    },
+    timeout: 30000
   });
+  
+  constructor() {
+    // Ensure API key is loaded
+    if (!process.env.CH_API_KEY) {
+      console.error('OfficerService: CH_API_KEY not found in environment');
+    }
+    
+    // Add retry logic for rate limits
+    this.apiClient.interceptors.response.use(
+      response => response,
+      async error => {
+        if (error.response?.status === 429) {
+          const retryAfter = parseInt(error.response.headers['retry-after'] || '5');
+          console.log(`Rate limited. Waiting ${retryAfter} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+          return this.apiClient.request(error.config);
+        }
+        throw error;
+      }
+    );
+  }
 
   async getCompanyOfficers(companyNumber: string): Promise<OfficerList> {
     // 1. Check PostgreSQL cache first (most reliable)

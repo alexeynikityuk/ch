@@ -251,8 +251,8 @@ export class CompaniesHouseAPI {
     
     // Filter companies by officer birth year
     const companiesWithMatchingOfficers: CompanyResult[] = [];
-    const BATCH_SIZE = 10; // Process 10 companies in parallel
-    const DELAY_BETWEEN_BATCHES = 200; // ms
+    const BATCH_SIZE = 5; // Reduced to avoid rate limits
+    const DELAY_BETWEEN_BATCHES = 1000; // 1 second delay between batches
     
     for (let i = 0; i < totalToCheck; i += BATCH_SIZE) {
       const batch = allCompanies.slice(i, Math.min(i + BATCH_SIZE, totalToCheck));

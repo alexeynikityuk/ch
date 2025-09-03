@@ -135,10 +135,11 @@ async function searchCompanies(page = 1) {
     currentFilters = filters;
     currentPage = page;
     
-    // Show loading
+    // Show loading and disable search button
     showLoading(true);
     hideError();
     hideResults();
+    setSearchButtonState(true);
     
     try {
         const response = await fetch('/api/search', {
@@ -165,6 +166,7 @@ async function searchCompanies(page = 1) {
         showError(error.message);
     } finally {
         showLoading(false);
+        setSearchButtonState(false);
     }
 }
 
@@ -329,6 +331,22 @@ function showResults() {
 
 function hideResults() {
     document.getElementById('resultsCard').style.display = 'none';
+}
+
+function setSearchButtonState(isLoading) {
+    const searchButton = document.getElementById('searchButton');
+    const buttonText = searchButton.querySelector('span');
+    const buttonIcon = searchButton.querySelector('i');
+    
+    if (isLoading) {
+        searchButton.disabled = true;
+        buttonText.textContent = 'Searching...';
+        buttonIcon.textContent = 'hourglass_empty';
+    } else {
+        searchButton.disabled = false;
+        buttonText.textContent = 'Search';
+        buttonIcon.textContent = 'search';
+    }
 }
 
 // Form submit handler

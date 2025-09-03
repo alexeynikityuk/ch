@@ -441,12 +441,14 @@
         <div class="search-card">
             <form id="searchForm">
                 <div class="form-grid">
+                    <!-- Column 1: Company name/keyword, incorporated from, incorporated to -->
                     <div class="form-field">
                         <label for="keyword">Company Name/Keyword</label>
                         <input type="text" id="keyword" name="keyword">
                         <div class="helper-text">Search by company name or keywords. Leave empty to search by filters only.</div>
                     </div>
                     
+                    <!-- Column 2: Company status -->
                     <div class="form-field">
                         <label>Company Status</label>
                         <div class="checkbox-group">
@@ -469,6 +471,28 @@
                         </div>
                     </div>
                     
+                    <!-- Column 3: Postcode prefix -->
+                    <div class="form-field">
+                        <label for="postcode_prefix">Postcode Prefix</label>
+                        <input type="text" id="postcode_prefix" name="postcode_prefix">
+                        <div class="helper-text">e.g., EC2, SW1</div>
+                    </div>
+                    
+                    <!-- Column 4: Directors born before -->
+                    <div class="form-field">
+                        <label for="officer_birth_year">Directors Born Before Year</label>
+                        <input type="text" id="officer_birth_year" name="officer_birth_year" pattern="[0-9]{4}" maxlength="4">
+                        <div class="helper-text">Show companies with directors born before this year (e.g., 1962 = born before 1962)</div>
+                    </div>
+                    
+                    <!-- Row 2 -->
+                    <!-- Column 1: Incorporated from -->
+                    <div class="form-field">
+                        <label for="incorporated_from">Incorporated From</label>
+                        <input type="date" id="incorporated_from" name="incorporated_from">
+                    </div>
+                    
+                    <!-- Column 2: Company type -->
                     <div class="form-field">
                         <label>Company Type</label>
                         <div class="checkbox-group">
@@ -491,41 +515,32 @@
                         </div>
                     </div>
                     
-                    <div class="form-field">
-                        <label for="incorporated_from">Incorporated From</label>
-                        <input type="date" id="incorporated_from" name="incorporated_from">
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="incorporated_to">Incorporated To</label>
-                        <input type="date" id="incorporated_to" name="incorporated_to">
-                    </div>
-                    
-                    <div class="form-field">
-                        <label for="postcode_prefix">Postcode Prefix</label>
-                        <input type="text" id="postcode_prefix" name="postcode_prefix">
-                        <div class="helper-text">e.g., EC2, SW1</div>
-                    </div>
-                    
+                    <!-- Column 3: Locality -->
                     <div class="form-field">
                         <label for="locality">Locality</label>
                         <input type="text" id="locality" name="locality">
                         <div class="helper-text">e.g., London, Manchester</div>
                     </div>
                     
-                    <div class="form-field">
-                        <label for="officer_birth_year">Directors Born Before Year</label>
-                        <input type="text" id="officer_birth_year" name="officer_birth_year" pattern="[0-9]{4}" maxlength="4">
-                        <div class="helper-text">Show companies with directors born before this year (e.g., 1962 = born before 1962)</div>
-                    </div>
-                    
-                    <div class="form-field sic-autocomplete">
+                    <!-- Column 4: Industry/SIC codes (spans 2 rows) -->
+                    <div class="form-field sic-autocomplete" style="grid-row: span 2;">
                         <label for="sic">Industry/SIC Codes (Filter)</label>
                         <input type="text" id="sic" name="sic">
                         <div class="helper-text">Type industry terms or SIC codes to filter companies by their business activity.</div>
                         <div class="sic-suggestions" id="sicSuggestions"></div>
                         <div class="selected-sic-chips" id="selectedSICCodes"></div>
                     </div>
+                    
+                    <!-- Row 3 -->
+                    <!-- Column 1: Incorporated to -->
+                    <div class="form-field">
+                        <label for="incorporated_to">Incorporated To</label>
+                        <input type="date" id="incorporated_to" name="incorporated_to">
+                    </div>
+                    
+                    <!-- Columns 2 and 3 are empty in row 3 -->
+                    <div></div>
+                    <div></div>
                 </div>
                 
                 <div class="button-group">

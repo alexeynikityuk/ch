@@ -257,6 +257,16 @@
                 // Create chart
                 createChart(data.dailyStats);
                 
+                // Show message if database is not configured
+                if (data.message) {
+                    document.getElementById('dailyChart').innerHTML += `
+                        <div style="text-align: center; color: #666; padding: 16px; background: #fff3cd; border-radius: 4px; margin-top: 16px;">
+                            <i class="material-icons" style="vertical-align: middle;">info</i>
+                            ${data.message}
+                        </div>
+                    `;
+                }
+                
             } catch (error) {
                 console.error('Error loading stats:', error);
                 document.getElementById('dailyChart').innerHTML = `

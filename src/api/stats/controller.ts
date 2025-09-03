@@ -8,8 +8,18 @@ export const getStatsController = async (
   next: NextFunction
 ) => {
   try {
+    // If no database, return empty stats
     if (!pool) {
-      throw new AppError('Database not available', 503);
+      res.json({
+        summary: {
+          today: 0,
+          last7Days: 0,
+          total: 0
+        },
+        dailyStats: [],
+        message: 'Database not configured. Stats will be available once database is set up.'
+      });
+      return;
     }
 
     // Get search counts for the last 30 days

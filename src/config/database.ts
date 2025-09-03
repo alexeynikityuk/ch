@@ -5,12 +5,15 @@ dotenv.config();
 
 let pool: Pool | null = null;
 
-// Only create database pool if DATABASE_URL is provided
-if (process.env.DATABASE_URL) {
+// Use POSTGRES_URL (Vercel/Neon) or DATABASE_URL
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+
+// Only create database pool if connection string is provided
+if (connectionString) {
   try {
     pool = new Pool({
-      connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+      connectionString,
+      ssl: connectionString.includes('localhost') ? false : { rejectUnauthorized: false }
     });
 
     pool.on('error', (err) => {
@@ -26,7 +29,7 @@ if (process.env.DATABASE_URL) {
     pool = null;
   }
 } else {
-  console.warn('DATABASE_URL not provided, database operations will be disabled');
+  console.warn('Database connection string not provided (POSTGRES_URL or DATABASE_URL), database operations will be disabled');
 }
 
 export default pool;

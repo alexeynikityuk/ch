@@ -23,11 +23,18 @@ app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Debug middleware for Vercel
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - IP: ${req.ip}, x-forwarded-for: ${req.headers['x-forwarded-for']}`);
+  next();
+});
+
 // Serve static files without rate limiting
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Apply rate limiting only to API routes
-app.use('/api', rateLimitMiddleware);
+// Temporarily disabled to debug Vercel issue
+// app.use('/api', rateLimitMiddleware);
 
 app.use('/api/search', searchRoutes);
 app.use('/api/export', exportRoutes);

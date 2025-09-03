@@ -6,7 +6,7 @@ import { AppError } from './errorHandler';
 // Use Redis rate limiter if available, otherwise use in-memory rate limiter
 const rateLimiterOptions = {
   keyPrefix: 'middleware',
-  points: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+  points: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // Increased from 100
   duration: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000') / 1000, // Convert to seconds
 };
 

@@ -24,6 +24,15 @@ if (connectionString) {
     pool.on('connect', () => {
       console.log('Connected to PostgreSQL database');
     });
+
+    // Test the connection immediately
+    pool.query('SELECT NOW()', (err, res) => {
+      if (err) {
+        console.error('Database connection test failed:', err);
+      } else {
+        console.log('Database connection successful! Current time:', res.rows[0].now);
+      }
+    });
   } catch (error) {
     console.warn('Failed to create database pool, database operations will be disabled', error);
     pool = null;

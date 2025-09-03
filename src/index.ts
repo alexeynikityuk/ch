@@ -11,6 +11,7 @@ import searchRoutes from './api/search/routes';
 import exportRoutes from './api/export/routes';
 import presetsRoutes from './api/presets/routes';
 import statsRoutes from './api/stats/routes';
+import pool from './config/database';
 
 dotenv.config();
 
@@ -42,8 +43,26 @@ app.use('/api/export', exportRoutes);
 app.use('/api/presets', presetsRoutes);
 app.use('/api/stats', statsRoutes);
 
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+  const health: any = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    database: 'not connected'
+  };
+
+  // Check database connection
+  if (pool) {
+    try {
+      const result = await pool.query('SELECT COUNT(*) FROM search_metrics');
+      health.database = 'connected';
+      health.searchMetricsCount = parseInt(result.rows[0].count);
+    } catch (error: any) {
+      health.database = 'error';
+      health.databaseError = error.message;
+    }
+  }
+
+  res.json(health);
 });
 
 app.use(errorHandler);

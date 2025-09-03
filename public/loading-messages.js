@@ -1,11 +1,12 @@
 // Loading messages for officer search
 const loadingMessages = [
   "Searching companies...",
-  "Checking directors' information...",
+  "Checking directors' birth years...",
   "We're almost there...",
   "Just a few more moments...",
   "Processing company records...",
   "Analyzing officer data...",
+  "Filtering by director age...",
   "Nearly finished...",
   "Finalizing results..."
 ];

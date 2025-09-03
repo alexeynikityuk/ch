@@ -7,7 +7,7 @@ export interface CompanySearchFilters {
   incorporated_to?: string;
   postcode_prefix?: string;
   locality?: string;
-  officer_birth_year?: number;
+  officer_birth_year?: number; // Filter for officers born before this year
 }
 
 export interface CompanyResult {

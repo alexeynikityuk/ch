@@ -70,23 +70,25 @@ class OfficerService {
     }
   }
 
-  hasOfficerWithBirthYear(officers: OfficerList, birthYear: number): boolean {
+  hasOfficerWithBirthYear(officers: OfficerList, birthYearBefore: number): boolean {
     return officers.items.some(officer => {
       // Only check active officers (no resigned_on date)
       if (officer.resigned_on) return false;
       
-      // Check if birth year matches
-      return officer.date_of_birth?.year === birthYear;
+      // Check if birth year is before the specified year
+      const officerBirthYear = officer.date_of_birth?.year;
+      return officerBirthYear !== undefined && officerBirthYear < birthYearBefore;
     });
   }
 
-  getActiveOfficersWithBirthYear(officers: OfficerList, birthYear: number): Officer[] {
+  getActiveOfficersWithBirthYear(officers: OfficerList, birthYearBefore: number): Officer[] {
     return officers.items.filter(officer => {
       // Only include active officers
       if (officer.resigned_on) return false;
       
-      // Check if birth year matches
-      return officer.date_of_birth?.year === birthYear;
+      // Check if birth year is before the specified year
+      const officerBirthYear = officer.date_of_birth?.year;
+      return officerBirthYear !== undefined && officerBirthYear < birthYearBefore;
     });
   }
 }

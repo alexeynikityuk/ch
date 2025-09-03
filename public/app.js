@@ -202,25 +202,45 @@ function getSICCodesForSearch() {
 }
 
 async function searchWithProgress(filters, page) {
+    // Initialize progress display
+    updateProgress(0, 0);
+    
     const eventSource = new EventSource(`/api/search/stream?filters=${encodeURIComponent(JSON.stringify(filters))}&page=${page}&page_size=${pageSize}`);
     
+    console.log('Starting SSE connection for officer search...');
+    
     return new Promise((resolve, reject) => {
+        eventSource.onopen = () => {
+            console.log('SSE connection opened');
+        };
+        
         eventSource.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            
-            if (data.type === 'progress') {
-                updateProgress(data.current, data.total);
-            } else if (data.type === 'result') {
-                displayResults(data.result);
-                eventSource.close();
-                resolve();
-            } else if (data.type === 'error') {
-                eventSource.close();
-                reject(new Error(data.message));
+            try {
+                const data = JSON.parse(event.data);
+                console.log('SSE event received:', data); // Debug logging
+                
+                if (data.type === 'connected') {
+                    console.log('SSE connected successfully');
+                } else if (data.type === 'progress') {
+                    console.log(`Progress update: ${data.current}/${data.total}`);
+                    updateProgress(data.current, data.total);
+                } else if (data.type === 'result') {
+                    console.log('Final result received');
+                    displayResults(data.result);
+                    eventSource.close();
+                    resolve();
+                } else if (data.type === 'error') {
+                    console.error('SSE error:', data.message);
+                    eventSource.close();
+                    reject(new Error(data.message));
+                }
+            } catch (e) {
+                console.error('Error parsing SSE data:', e, 'Raw data:', event.data);
             }
         };
         
         eventSource.onerror = (error) => {
+            console.error('EventSource error:', error);
             eventSource.close();
             reject(new Error('Connection lost'));
         };
@@ -379,10 +399,17 @@ function updateProgress(current, total) {
     const progressCurrent = document.getElementById('progressCurrent');
     const progressTotal = document.getElementById('progressTotal');
     
-    const percentage = (current / total) * 100;
-    progressFill.style.width = percentage + '%';
-    progressCurrent.textContent = current;
-    progressTotal.textContent = total;
+    if (progressCurrent && progressTotal) {
+        progressCurrent.textContent = current;
+        progressTotal.textContent = total;
+    }
+    
+    if (progressFill && total > 0) {
+        const percentage = (current / total) * 100;
+        progressFill.style.width = percentage + '%';
+    }
+    
+    console.log(`Progress: ${current}/${total}`); // Debug logging
 }
 
 function showError(message) {

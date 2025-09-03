@@ -1,5 +1,6 @@
 import axios from 'axios';
 import redis from '../config/redis';
+import pool from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 
 export interface Officer {
@@ -34,9 +35,25 @@ class OfficerService {
   });
 
   async getCompanyOfficers(companyNumber: string): Promise<OfficerList> {
-    const cacheKey = `officers:${companyNumber}`;
+    // 1. Check PostgreSQL cache first (most reliable)
+    if (pool) {
+      try {
+        const cacheResult = await pool.query(
+          'SELECT officers_data FROM company_officers_cache WHERE company_number = $1 AND expires_at > NOW()',
+          [companyNumber]
+        );
+        
+        if (cacheResult.rows.length > 0) {
+          console.log(`Officer cache hit for ${companyNumber}`);
+          return cacheResult.rows[0].officers_data as OfficerList;
+        }
+      } catch (error) {
+        console.warn('Database cache read failed:', error);
+      }
+    }
     
-    // Check cache first
+    // 2. Check Redis cache as fallback
+    const cacheKey = `officers:${companyNumber}`;
     if (redis) {
       try {
         const cached = await redis.get(cacheKey);
@@ -44,20 +61,50 @@ class OfficerService {
           return JSON.parse(cached);
         }
       } catch (error) {
-        console.warn('Cache read failed:', error);
+        console.warn('Redis cache read failed:', error);
       }
     }
 
+    // 3. Fetch from API if not in cache
+    console.log(`Fetching officers from API for ${companyNumber}`);
     try {
       const response = await this.apiClient.get(`/company/${companyNumber}/officers`);
-      const data = response.data;
+      const data = response.data as OfficerList;
       
-      // Cache for 24 hours
+      // 4. Cache in PostgreSQL (30 days)
+      if (pool) {
+        try {
+          await pool.query(
+            `INSERT INTO company_officers_cache 
+             (company_number, officers_data, total_results, active_count, resigned_count) 
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (company_number) 
+             DO UPDATE SET 
+               officers_data = $2,
+               total_results = $3,
+               active_count = $4,
+               resigned_count = $5,
+               fetched_at = CURRENT_TIMESTAMP,
+               expires_at = CURRENT_TIMESTAMP + INTERVAL '30 days'`,
+            [
+              companyNumber,
+              JSON.stringify(data),
+              data.total_results || 0,
+              data.active_count || 0,
+              data.resigned_count || 0
+            ]
+          );
+        } catch (error) {
+          console.warn('Database cache write failed:', error);
+        }
+      }
+      
+      // 5. Also cache in Redis for speed (24 hours)
       if (redis) {
         try {
           await redis.setex(cacheKey, 86400, JSON.stringify(data));
         } catch (error) {
-          console.warn('Cache write failed:', error);
+          console.warn('Redis cache write failed:', error);
         }
       }
       
@@ -90,6 +137,40 @@ class OfficerService {
       const officerBirthYear = officer.date_of_birth?.year;
       return officerBirthYear !== undefined && officerBirthYear < birthYearBefore;
     });
+  }
+
+  async getCacheStats(): Promise<{
+    totalCached: number;
+    cacheSize: number;
+    oldestEntry: Date | null;
+    newestEntry: Date | null;
+  }> {
+    if (!pool) {
+      return { totalCached: 0, cacheSize: 0, oldestEntry: null, newestEntry: null };
+    }
+
+    try {
+      const result = await pool.query(`
+        SELECT 
+          COUNT(*) as total_cached,
+          SUM(LENGTH(officers_data::text)) as cache_size,
+          MIN(fetched_at) as oldest_entry,
+          MAX(fetched_at) as newest_entry
+        FROM company_officers_cache
+        WHERE expires_at > NOW()
+      `);
+
+      const row = result.rows[0];
+      return {
+        totalCached: parseInt(row.total_cached) || 0,
+        cacheSize: parseInt(row.cache_size) || 0,
+        oldestEntry: row.oldest_entry,
+        newestEntry: row.newest_entry
+      };
+    } catch (error) {
+      console.error('Failed to get cache stats:', error);
+      return { totalCached: 0, cacheSize: 0, oldestEntry: null, newestEntry: null };
+    }
   }
 }
 

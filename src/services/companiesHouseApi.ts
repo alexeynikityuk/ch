@@ -232,6 +232,16 @@ export class CompaniesHouseAPI {
       console.log(`Officer search: Checking ${totalToCheck} companies. This may take several minutes...`);
     }
     
+    // Get cache stats to show hit rate
+    const cacheStats = await officerService.getCacheStats();
+    console.log(`Officer cache contains ${cacheStats.totalCached} companies`);
+    
+    // Send initial progress
+    if (progressCallback) {
+      console.log(`Sending initial progress: 0/${totalToCheck}`);
+      progressCallback(0, totalToCheck);
+    }
+    
     // Filter companies by officer birth year
     const companiesWithMatchingOfficers: CompanyResult[] = [];
     const BATCH_SIZE = 10; // Process 10 companies in parallel
@@ -274,8 +284,10 @@ export class CompaniesHouseAPI {
       companiesWithMatchingOfficers.push(...batchResults.filter((c): c is CompanyResult => c !== null));
       
       // Update progress
+      const currentProgress = Math.min(i + BATCH_SIZE, totalToCheck);
       if (progressCallback) {
-        progressCallback(Math.min(i + BATCH_SIZE, totalToCheck), totalToCheck);
+        console.log(`Sending progress: ${currentProgress}/${totalToCheck}`);
+        progressCallback(currentProgress, totalToCheck);
       }
       
       // Small delay between batches to avoid rate limiting

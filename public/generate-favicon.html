@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Favicon</title>
+</head>
+<body>
+    <h1>Favicon Generator</h1>
+    <canvas id="canvas" width="512" height="512"></canvas>
+    <br>
+    <button onclick="download()">Download favicon.png</button>
+    
+    <h2>OG Image (1200x630)</h2>
+    <canvas id="og-canvas" width="1200" height="630"></canvas>
+    <br>
+    <button onclick="downloadOG()">Download og-image.png</button>
+    
+    <script>
+        // Draw favicon
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Background
+        ctx.fillStyle = '#1976d2';
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 240px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('CH', 256, 240);
+        
+        // Decorative lines
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillRect(50, 360, 412, 40);
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillRect(50, 420, 300, 40);
+        
+        function download() {
+            const link = document.createElement('a');
+            link.download = 'favicon.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+        
+        // Draw OG Image
+        const ogCanvas = document.getElementById('og-canvas');
+        const ogCtx = ogCanvas.getContext('2d');
+        
+        // Background gradient
+        const gradient = ogCtx.createLinearGradient(0, 0, 1200, 630);
+        gradient.addColorStop(0, '#1976d2');
+        gradient.addColorStop(1, '#1565c0');
+        ogCtx.fillStyle = gradient;
+        ogCtx.fillRect(0, 0, 1200, 630);
+        
+        // Title
+        ogCtx.fillStyle = 'white';
+        ogCtx.font = 'bold 80px Arial';
+        ogCtx.textAlign = 'center';
+        ogCtx.fillText('Companies House Search', 600, 200);
+        
+        // Subtitle
+        ogCtx.font = '40px Arial';
+        ogCtx.fillText('Advanced Company & Director Search Tool', 600, 280);
+        
+        // Features
+        ogCtx.font = '32px Arial';
+        ogCtx.textAlign = 'left';
+        const features = [
+            '✓ Search by company status, type, and location',
+            '✓ Filter by SIC codes and industry',
+            '✓ Search by director birth year',
+            '✓ Export results to CSV or JSON'
+        ];
+        
+        features.forEach((feature, index) => {
+            ogCtx.fillText(feature, 200, 380 + (index * 50));
+        });
+        
+        // Footer
+        ogCtx.font = '28px Arial';
+        ogCtx.textAlign = 'center';
+        ogCtx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ogCtx.fillText('Free to use • No registration required', 600, 550);
+        
+        function downloadOG() {
+            const link = document.createElement('a');
+            link.download = 'og-image.png';
+            link.href = ogCanvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

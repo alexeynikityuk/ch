@@ -63,6 +63,49 @@ export class CompaniesHouseAPI {
     );
   }
 
+  async advancedSearch(filters: CompanySearchFilters, startIndex: number = 0, size: number = 100): Promise<any> {
+    const params: any = {
+      size: size.toString(),
+      start_index: startIndex.toString()
+    };
+
+    // Add filters to params
+    if (filters.keyword) {
+      params.company_name_includes = filters.keyword;
+    }
+    
+    if (filters.company_status && filters.company_status.length > 0) {
+      params.company_status = filters.company_status.join(',');
+    }
+    
+    if (filters.company_type && filters.company_type.length > 0) {
+      params.company_type = filters.company_type.join(',');
+    }
+    
+    if (filters.incorporated_from) {
+      params.incorporated_from = filters.incorporated_from;
+    }
+    
+    if (filters.incorporated_to) {
+      params.incorporated_to = filters.incorporated_to;
+    }
+    
+    if (filters.sic && filters.sic.length > 0) {
+      params.sic_codes = filters.sic.join(',');
+    }
+    
+    if (filters.locality) {
+      params.location = filters.locality;
+    }
+
+    try {
+      const response = await this.client.get('/advanced-search/companies', { params });
+      return response.data;
+    } catch (error) {
+      this.handleError(error);
+    }
+  }
+
   async searchCompanies(keyword: string, page: number = 1, itemsPerPage: number = 20): Promise<any> {
     const cacheKey = `search:${keyword}:${page}:${itemsPerPage}`;
     
@@ -126,72 +169,38 @@ export class CompaniesHouseAPI {
     items: CompanyResult[];
     total: number;
   }> {
-    // If no keyword provided, use a broad search term
-    // The API doesn't support wildcards, but single letters return many results
-    const searchKeyword = filters.keyword || 'a';
-
-    // For filtered searches, we need to fetch more results to apply filters
-    // The Companies House API doesn't support all our filters directly
-    const hasFilters = filters.company_status || filters.company_type || 
-                      filters.incorporated_from || filters.incorporated_to || 
-                      filters.postcode_prefix || filters.locality || filters.sic;
-
-    if (hasFilters) {
-      // When filters are applied, fetch more results to filter locally
-      // This is a limitation of the Companies House API
-      let allCompanies: any[] = [];
-      let currentPage = 1;
-      const itemsPerFetch = 100; // Max allowed by API
-      const maxPages = filters.keyword ? 5 : 10; // Fetch more when no keyword (up to 1000 companies)
+    // Use advanced search API which supports all our filters directly!
+    const startIndex = (page - 1) * pageSize;
+    
+    try {
+      const searchResult = await this.advancedSearch(filters, startIndex, pageSize);
       
-      // Fetch multiple pages to get enough results for filtering
-      while (currentPage <= maxPages) {
-        const searchResult = await this.searchCompanies(searchKeyword, currentPage, itemsPerFetch);
-        if (!searchResult.items || searchResult.items.length === 0) break;
-        
-        allCompanies = allCompanies.concat(searchResult.items);
-        
-        // Stop if we've fetched all available results
-        if (allCompanies.length >= searchResult.total_results) break;
-        
-        currentPage++;
-      }
-
-      // Enrich with profile data and filter
-      const enrichedCompanies = await this.enrichCompaniesWithProfiles(allCompanies, filters);
-
-      // Apply pagination to filtered results
-      const startIndex = (page - 1) * pageSize;
-      const paginatedItems = enrichedCompanies.slice(startIndex, startIndex + pageSize);
-
-      return {
-        items: paginatedItems,
-        total: enrichedCompanies.length
-      };
-    } else {
-      // For simple keyword searches without filters, use direct API pagination
-      const searchResult = await this.searchCompanies(searchKeyword, page, pageSize);
-      
-      // Convert to our format without enrichment (faster for simple searches)
+      // Convert to our format
       const items: CompanyResult[] = (searchResult.items || []).map((company: any) => ({
         company_number: company.company_number,
-        company_name: company.title || company.company_name,
+        company_name: company.company_name,
         status: company.company_status,
         type: company.company_type,
         incorporation_date: company.date_of_creation,
         registered_office: {
-          postal_code: company.address?.postal_code,
-          locality: company.address?.locality,
-          region: company.address?.region,
-          country: company.address?.country
+          postal_code: company.registered_office_address?.postal_code,
+          locality: company.registered_office_address?.locality,
+          region: company.registered_office_address?.region,
+          country: company.registered_office_address?.country
         },
-        sic_codes: []
+        sic_codes: company.sic_codes || []
       }));
 
       return {
         items,
         total: searchResult.total_results || 0
       };
+    } catch (error: any) {
+      // If advanced search fails, provide helpful error message
+      if (error.response?.status === 404) {
+        throw new AppError('Advanced search endpoint not available. Please ensure you have proper API access.', 503);
+      }
+      throw error;
     }
   }
 

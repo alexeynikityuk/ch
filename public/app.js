@@ -26,12 +26,24 @@ sicInput.addEventListener('input', (e) => {
     }
     
     // Build suggestions HTML
-    sicSuggestions.innerHTML = matches.map(match => `
-        <div class="sic-suggestion-item" onclick="selectSICCode('${match.code}', '${match.description.replace(/'/g, "\\'")}')">
-            <span class="sic-suggestion-code">${match.code}</span>
-            <span>${match.description}</span>
-        </div>
-    `).join('');
+    sicSuggestions.innerHTML = matches.map(match => {
+        const escapedDesc = match.description.replace(/'/g, "\\'").replace(/"/g, '\\"');
+        return `
+            <div class="sic-suggestion-item" data-code="${match.code}" data-desc="${escapedDesc}">
+                <span class="sic-suggestion-code">${match.code}</span>
+                <span>${match.description}</span>
+            </div>
+        `;
+    }).join('');
+    
+    // Add click handlers to suggestions
+    sicSuggestions.querySelectorAll('.sic-suggestion-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const code = this.getAttribute('data-code');
+            const desc = this.getAttribute('data-desc');
+            selectSICCode(code, desc);
+        });
+    });
     
     sicSuggestions.style.display = 'block';
 });

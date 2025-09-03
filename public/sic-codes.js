@@ -58,8 +58,13 @@ function searchSICCodes(query) {
   const normalizedQuery = query.toLowerCase().trim();
   const matches = [];
   
-  // Direct code match
+  // Direct code match - look for exact SIC code
   if (/^\d{4,5}$/.test(normalizedQuery)) {
+    const exactMatch = sicCodeMappings.find(m => m.code === normalizedQuery);
+    if (exactMatch) {
+      return [exactMatch];
+    }
+    // If code not found in our mappings, return generic
     return [{ code: normalizedQuery, description: `SIC Code ${normalizedQuery}` }];
   }
   

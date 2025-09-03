@@ -126,8 +126,9 @@ export class CompaniesHouseAPI {
     items: CompanyResult[];
     total: number;
   }> {
-    // If no keyword provided, use a generic search term
-    const searchKeyword = filters.keyword || '*';
+    // If no keyword provided, use a broad search term
+    // The API doesn't support wildcards, but single letters return many results
+    const searchKeyword = filters.keyword || 'a';
 
     // For filtered searches, we need to fetch more results to apply filters
     // The Companies House API doesn't support all our filters directly
@@ -141,7 +142,7 @@ export class CompaniesHouseAPI {
       let allCompanies: any[] = [];
       let currentPage = 1;
       const itemsPerFetch = 100; // Max allowed by API
-      const maxPages = 5; // Fetch up to 500 companies to filter
+      const maxPages = filters.keyword ? 5 : 10; // Fetch more when no keyword (up to 1000 companies)
       
       // Fetch multiple pages to get enough results for filtering
       while (currentPage <= maxPages) {

@@ -32,6 +32,21 @@ export const searchController = async (
     // Search companies with filters
     const searchResult = await companiesHouseApi.searchWithFilters(filters, page, page_size);
 
+    // Track search in metrics
+    if (pool) {
+      try {
+        await pool.query(`
+          INSERT INTO search_metrics (date, search_count) 
+          VALUES (CURRENT_DATE, 1)
+          ON CONFLICT (date) 
+          DO UPDATE SET search_count = search_metrics.search_count + 1
+        `);
+      } catch (metricsError) {
+        console.warn('Failed to update search metrics:', metricsError);
+        // Continue without tracking - don't fail the search
+      }
+    }
+
     // Generate result token for export
     const resultToken = crypto.randomBytes(16).toString('hex');
 
@@ -119,6 +134,28 @@ export const searchStreamController = async (
 
       // Generate result token
       const resultToken = crypto.randomBytes(16).toString('hex');
+
+      // Increment daily search counter
+      if (pool) {
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const metricsQuery = `
+            INSERT INTO search_metrics (date, search_count, unique_filters)
+            VALUES ($1, 1, $2)
+            ON CONFLICT (date) DO UPDATE 
+            SET search_count = search_metrics.search_count + 1,
+                unique_filters = CASE 
+                  WHEN NOT search_metrics.unique_filters @> $2
+                  THEN search_metrics.unique_filters || $2
+                  ELSE search_metrics.unique_filters
+                END,
+                updated_at = NOW()
+          `;
+          await pool.query(metricsQuery, [today, JSON.stringify([filters])]);
+        } catch (metricsError) {
+          console.warn('Failed to update search metrics:', metricsError);
+        }
+      }
 
       // Store search snapshot for export
       if (pool) {

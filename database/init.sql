@@ -35,6 +35,17 @@ CREATE TABLE IF NOT EXISTS companies (
   last_refreshed TIMESTAMPTZ
 );
 
+-- Create search_metrics table
+CREATE TABLE IF NOT EXISTS search_metrics (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date DATE NOT NULL,
+  search_count INTEGER DEFAULT 0,
+  unique_filters JSONB DEFAULT '[]',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(date)
+);
+
 -- Create indexes
 CREATE INDEX idx_filter_presets_user_id ON filter_presets(user_id);
 CREATE INDEX idx_search_snapshots_user_id ON search_snapshots(user_id);
@@ -42,3 +53,4 @@ CREATE INDEX idx_search_snapshots_created_at ON search_snapshots(created_at);
 CREATE INDEX idx_companies_status ON companies(status);
 CREATE INDEX idx_companies_type ON companies(type);
 CREATE INDEX idx_companies_incorporation_date ON companies(incorporation_date);
+CREATE INDEX idx_search_metrics_date ON search_metrics(date);

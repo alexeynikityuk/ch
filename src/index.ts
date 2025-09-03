@@ -10,6 +10,7 @@ import { rateLimitMiddleware } from './middleware/rateLimiter';
 import searchRoutes from './api/search/routes';
 import exportRoutes from './api/export/routes';
 import presetsRoutes from './api/presets/routes';
+import statsRoutes from './api/stats/routes';
 
 dotenv.config();
 
@@ -39,6 +40,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use('/api/search', searchRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/presets', presetsRoutes);
+app.use('/api/stats', statsRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

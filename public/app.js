@@ -246,13 +246,13 @@ function formatDate(dateString) {
 }
 
 // Pagination
-window.previousPage = function() {
+function previousPage() {
     if (currentPage > 1) {
         searchCompanies(currentPage - 1);
     }
 }
 
-window.nextPage = function() {
+function nextPage() {
     const totalPages = Math.ceil(totalResults / pageSize);
     if (currentPage < totalPages) {
         searchCompanies(currentPage + 1);
@@ -260,7 +260,7 @@ window.nextPage = function() {
 }
 
 // Export functionality
-window.exportResults = async function(format) {
+async function exportResults(format) {
     if (!currentToken) {
         showError('No results to export');
         return;
@@ -300,7 +300,7 @@ window.exportResults = async function(format) {
 }
 
 // Reset form
-window.resetForm = function() {
+function resetForm() {
     document.getElementById('searchForm').reset();
     hideResults();
     hideError();
@@ -349,8 +349,14 @@ function setSearchButtonState(isLoading) {
     }
 }
 
-// Form submit handler
+// Event handlers
 document.getElementById('searchForm').addEventListener('submit', (e) => {
     e.preventDefault();
     searchCompanies(1);
 });
+
+document.getElementById('resetButton').addEventListener('click', resetForm);
+document.getElementById('exportCsvBtn').addEventListener('click', () => exportResults('csv'));
+document.getElementById('exportJsonBtn').addEventListener('click', () => exportResults('json'));
+document.getElementById('prevBtn').addEventListener('click', previousPage);
+document.getElementById('nextBtn').addEventListener('click', nextPage);

@@ -193,7 +193,7 @@ export class CompaniesHouseAPI {
 
       return {
         items,
-        total: searchResult.total_results || 0
+        total: searchResult.hits || searchResult.total_results || 0
       };
     } catch (error: any) {
       // If advanced search fails, provide helpful error message

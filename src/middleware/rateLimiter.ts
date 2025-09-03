@@ -23,7 +23,11 @@ export const rateLimitMiddleware = async (
   next: NextFunction
 ) => {
   try {
-    await rateLimiter.consume(req.ip || 'anonymous');
+    // Get real IP on Vercel (uses x-forwarded-for header)
+    const ip = req.headers['x-forwarded-for'] || req.ip || 'anonymous';
+    const key = Array.isArray(ip) ? ip[0] : ip;
+    
+    await rateLimiter.consume(key);
     next();
   } catch (rejRes: any) {
     const retryAfter = Math.round(rejRes.msBeforeNext / 1000) || 60;

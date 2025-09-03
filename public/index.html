@@ -365,8 +365,9 @@
             <form id="searchForm">
                 <div class="form-grid">
                     <div class="form-field">
-                        <label for="keyword">Keyword (Required)</label>
+                        <label for="keyword">Company Name/Keyword (Required)</label>
                         <input type="text" id="keyword" name="keyword" required>
+                        <div class="helper-text">Search by company name or keywords. SIC code filtering is applied after search.</div>
                     </div>
                     
                     <div class="form-field">
@@ -436,9 +437,9 @@
                     </div>
                     
                     <div class="form-field sic-autocomplete">
-                        <label for="sic">Industry/SIC Codes</label>
+                        <label for="sic">Industry/SIC Codes (Filter)</label>
                         <input type="text" id="sic" name="sic">
-                        <div class="helper-text">Type industry terms (e.g., software, finance) or SIC codes</div>
+                        <div class="helper-text">Type industry terms or SIC codes. Note: Due to API limitations, SIC filtering is applied to search results, not as a primary search.</div>
                         <div class="sic-suggestions" id="sicSuggestions"></div>
                         <div class="selected-sic-chips" id="selectedSICCodes"></div>
                     </div>

@@ -10,8 +10,13 @@ export const getPresets = async (
   req: Request,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
+    if (!pool) {
+      res.json({ presets: [] });
+      return;
+    }
+
     const query = `
       SELECT id, name, filters, created_at
       FROM filter_presets
@@ -40,6 +45,10 @@ export const createPreset = async (
   next: NextFunction
 ) => {
   try {
+    if (!pool) {
+      throw new AppError('Presets functionality is currently unavailable', 503);
+    }
+
     const { name, filters } = req.body;
 
     if (!name || !filters) {
@@ -77,6 +86,10 @@ export const deletePreset = async (
   next: NextFunction
 ) => {
   try {
+    if (!pool) {
+      throw new AppError('Presets functionality is currently unavailable', 503);
+    }
+
     const { id } = req.params;
 
     const query = `

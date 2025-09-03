@@ -65,10 +65,13 @@ export class CompaniesHouseAPI {
 
   async searchCompanies(keyword: string, page: number = 1, itemsPerPage: number = 20): Promise<any> {
     const cacheKey = `search:${keyword}:${page}:${itemsPerPage}`;
-    const cached = await redis.get(cacheKey);
     
-    if (cached) {
-      return JSON.parse(cached);
+    // Check cache if Redis is available
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
     }
 
     try {
@@ -81,7 +84,11 @@ export class CompaniesHouseAPI {
       });
 
       const data = response.data;
-      await redis.setex(cacheKey, 600, JSON.stringify(data)); // Cache for 10 minutes
+      
+      // Cache result if Redis is available
+      if (redis) {
+        await redis.setex(cacheKey, 600, JSON.stringify(data)); // Cache for 10 minutes
+      }
       
       return data;
     } catch (error) {
@@ -91,17 +98,23 @@ export class CompaniesHouseAPI {
 
   async getCompanyProfile(companyNumber: string): Promise<any> {
     const cacheKey = `company:${companyNumber}`;
-    const cached = await redis.get(cacheKey);
     
-    if (cached) {
-      return JSON.parse(cached);
+    // Check cache if Redis is available
+    if (redis) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
     }
 
     try {
       const response = await this.client.get(`/company/${companyNumber}`);
       const data = response.data;
       
-      await redis.setex(cacheKey, 86400, JSON.stringify(data)); // Cache for 24 hours
+      // Cache result if Redis is available
+      if (redis) {
+        await redis.setex(cacheKey, 86400, JSON.stringify(data)); // Cache for 24 hours
+      }
       
       return data;
     } catch (error) {

@@ -20,6 +20,11 @@ export const exportController = async (
       throw new AppError('Invalid format. Use csv or json', 400);
     }
 
+    // Check if database is available
+    if (!pool) {
+      throw new AppError('Export functionality is currently unavailable', 503);
+    }
+
     // Retrieve search results from database
     const query = `
       SELECT results FROM search_snapshots 

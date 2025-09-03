@@ -1,14 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import { RateLimiterRedis } from 'rate-limiter-flexible';
+import { RateLimiterRedis, RateLimiterMemory } from 'rate-limiter-flexible';
 import redis from '../config/redis';
 import { AppError } from './errorHandler';
 
-const rateLimiter = new RateLimiterRedis({
-  storeClient: redis,
+// Use Redis rate limiter if available, otherwise use in-memory rate limiter
+const rateLimiterOptions = {
   keyPrefix: 'middleware',
   points: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
   duration: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '60000') / 1000, // Convert to seconds
-});
+};
+
+const rateLimiter = redis
+  ? new RateLimiterRedis({
+      storeClient: redis,
+      ...rateLimiterOptions,
+    })
+  : new RateLimiterMemory(rateLimiterOptions);
 
 export const rateLimitMiddleware = async (
   req: Request,

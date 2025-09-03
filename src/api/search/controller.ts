@@ -44,12 +44,20 @@ export const searchController = async (
     // For MVP, using a placeholder user_id
     const userId = '00000000-0000-0000-0000-000000000000';
     
-    await pool.query(query, [
-      resultToken,
-      userId,
-      JSON.stringify(filters),
-      JSON.stringify(searchResult.items)
-    ]);
+    // Only store in database if pool is available
+    if (pool) {
+      try {
+        await pool.query(query, [
+          resultToken,
+          userId,
+          JSON.stringify(filters),
+          JSON.stringify(searchResult.items)
+        ]);
+      } catch (dbError) {
+        console.warn('Failed to store search snapshot in database:', dbError);
+        // Continue without storing - export won't work but search will
+      }
+    }
 
     const response: SearchResponse = {
       items: searchResult.items,

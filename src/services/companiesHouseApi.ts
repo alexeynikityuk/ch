@@ -126,31 +126,73 @@ export class CompaniesHouseAPI {
     items: CompanyResult[];
     total: number;
   }> {
-    let allCompanies: any[] = [];
-    let totalItems = 0;
-
-    // First, search by keyword if provided
-    if (filters.keyword) {
-      const searchResult = await this.searchCompanies(filters.keyword, 1, 100);
-      allCompanies = searchResult.items || [];
-      totalItems = searchResult.total_results || 0;
-    } else {
-      // If no keyword, we need to implement a different strategy
-      // This is a limitation of the Companies House API
+    if (!filters.keyword) {
       throw new AppError('Keyword is required for search', 400);
     }
 
-    // Enrich with profile data and filter
-    const enrichedCompanies = await this.enrichCompaniesWithProfiles(allCompanies, filters);
+    // For filtered searches, we need to fetch more results to apply filters
+    // The Companies House API doesn't support all our filters directly
+    const hasFilters = filters.company_status || filters.company_type || 
+                      filters.incorporated_from || filters.incorporated_to || 
+                      filters.postcode_prefix || filters.locality || filters.sic;
 
-    // Apply pagination
-    const startIndex = (page - 1) * pageSize;
-    const paginatedItems = enrichedCompanies.slice(startIndex, startIndex + pageSize);
+    if (hasFilters) {
+      // When filters are applied, fetch more results to filter locally
+      // This is a limitation of the Companies House API
+      let allCompanies: any[] = [];
+      let currentPage = 1;
+      const itemsPerFetch = 100; // Max allowed by API
+      const maxPages = 5; // Fetch up to 500 companies to filter
+      
+      // Fetch multiple pages to get enough results for filtering
+      while (currentPage <= maxPages) {
+        const searchResult = await this.searchCompanies(filters.keyword, currentPage, itemsPerFetch);
+        if (!searchResult.items || searchResult.items.length === 0) break;
+        
+        allCompanies = allCompanies.concat(searchResult.items);
+        
+        // Stop if we've fetched all available results
+        if (allCompanies.length >= searchResult.total_results) break;
+        
+        currentPage++;
+      }
 
-    return {
-      items: paginatedItems,
-      total: enrichedCompanies.length
-    };
+      // Enrich with profile data and filter
+      const enrichedCompanies = await this.enrichCompaniesWithProfiles(allCompanies, filters);
+
+      // Apply pagination to filtered results
+      const startIndex = (page - 1) * pageSize;
+      const paginatedItems = enrichedCompanies.slice(startIndex, startIndex + pageSize);
+
+      return {
+        items: paginatedItems,
+        total: enrichedCompanies.length
+      };
+    } else {
+      // For simple keyword searches without filters, use direct API pagination
+      const searchResult = await this.searchCompanies(filters.keyword, page, pageSize);
+      
+      // Convert to our format without enrichment (faster for simple searches)
+      const items: CompanyResult[] = (searchResult.items || []).map((company: any) => ({
+        company_number: company.company_number,
+        company_name: company.title || company.company_name,
+        status: company.company_status,
+        type: company.company_type,
+        incorporation_date: company.date_of_creation,
+        registered_office: {
+          postal_code: company.address?.postal_code,
+          locality: company.address?.locality,
+          region: company.address?.region,
+          country: company.address?.country
+        },
+        sic_codes: []
+      }));
+
+      return {
+        items,
+        total: searchResult.total_results || 0
+      };
+    }
   }
 
   private async enrichCompaniesWithProfiles(companies: any[], filters: CompanySearchFilters): Promise<CompanyResult[]> {

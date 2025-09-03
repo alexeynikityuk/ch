@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { CompanyResult, CompanySearchFilters } from '../types';
 import { AppError } from '../middleware/errorHandler';
 import redis from '../config/redis';
+import officerService from './officerService';
 
 export class CompaniesHouseAPI {
   private client: AxiosInstance;
@@ -165,10 +166,15 @@ export class CompaniesHouseAPI {
     }
   }
 
-  async searchWithFilters(filters: CompanySearchFilters, page: number, pageSize: number): Promise<{
+  async searchWithFilters(filters: CompanySearchFilters, page: number, pageSize: number, progressCallback?: (current: number, total: number) => void): Promise<{
     items: CompanyResult[];
     total: number;
   }> {
+    // Check if we need to filter by officer birth year
+    if (filters.officer_birth_year) {
+      return this.searchWithOfficerFilter(filters, page, pageSize, progressCallback);
+    }
+    
     // Use advanced search API which supports all our filters directly!
     const startIndex = (page - 1) * pageSize;
     
@@ -202,6 +208,85 @@ export class CompaniesHouseAPI {
       }
       throw error;
     }
+  }
+
+  private async searchWithOfficerFilter(filters: CompanySearchFilters, page: number, pageSize: number, progressCallback?: (current: number, total: number) => void): Promise<{
+    items: CompanyResult[];
+    total: number;
+  }> {
+    // First, get companies without officer filter
+    const birthYear = filters.officer_birth_year!;
+    const filtersWithoutOfficer = { ...filters };
+    delete filtersWithoutOfficer.officer_birth_year;
+    
+    // For testing, limit to first 100 companies
+    const TEST_LIMIT = 100;
+    
+    // Fetch initial companies
+    const searchResult = await this.advancedSearch(filtersWithoutOfficer, 0, TEST_LIMIT);
+    const allCompanies = searchResult.items || [];
+    const totalToCheck = Math.min(allCompanies.length, TEST_LIMIT);
+    
+    // Filter companies by officer birth year
+    const companiesWithMatchingOfficers: CompanyResult[] = [];
+    const BATCH_SIZE = 10; // Process 10 companies in parallel
+    const DELAY_BETWEEN_BATCHES = 200; // ms
+    
+    for (let i = 0; i < totalToCheck; i += BATCH_SIZE) {
+      const batch = allCompanies.slice(i, Math.min(i + BATCH_SIZE, totalToCheck));
+      
+      // Process batch in parallel
+      const batchResults = await Promise.all(
+        batch.map(async (company: any) => {
+          try {
+            const officers = await officerService.getCompanyOfficers(company.company_number);
+            
+            if (officerService.hasOfficerWithBirthYear(officers, birthYear)) {
+              return {
+                company_number: company.company_number,
+                company_name: company.company_name,
+                status: company.company_status,
+                type: company.company_type,
+                incorporation_date: company.date_of_creation,
+                registered_office: {
+                  postal_code: company.registered_office_address?.postal_code,
+                  locality: company.registered_office_address?.locality,
+                  region: company.registered_office_address?.region,
+                  country: company.registered_office_address?.country
+                },
+                sic_codes: company.sic_codes || []
+              };
+            }
+            return null;
+          } catch (error) {
+            console.warn(`Failed to check officers for company ${company.company_number}:`, error);
+            return null;
+          }
+        })
+      );
+      
+      // Add matching companies
+      companiesWithMatchingOfficers.push(...batchResults.filter((c): c is CompanyResult => c !== null));
+      
+      // Update progress
+      if (progressCallback) {
+        progressCallback(Math.min(i + BATCH_SIZE, totalToCheck), totalToCheck);
+      }
+      
+      // Small delay between batches to avoid rate limiting
+      if (i + BATCH_SIZE < totalToCheck) {
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+      }
+    }
+    
+    // Apply pagination to filtered results
+    const startIndex = (page - 1) * pageSize;
+    const paginatedItems = companiesWithMatchingOfficers.slice(startIndex, startIndex + pageSize);
+    
+    return {
+      items: paginatedItems,
+      total: companiesWithMatchingOfficers.length
+    };
   }
 
   private async enrichCompaniesWithProfiles(companies: any[], filters: CompanySearchFilters): Promise<CompanyResult[]> {

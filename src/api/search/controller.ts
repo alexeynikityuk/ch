@@ -71,3 +71,90 @@ export const searchController = async (
     next(error);
   }
 };
+
+export const searchStreamController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // Parse query parameters
+    const filtersParam = req.query.filters as string;
+    const pageParam = parseInt(req.query.page as string) || 1;
+    const pageSizeParam = parseInt(req.query.page_size as string) || 50;
+
+    if (!filtersParam) {
+      throw new AppError('Filters are required', 400);
+    }
+
+    const filters = JSON.parse(filtersParam);
+    
+    // Validate filters
+    const validationErrors = validateSearchFilters(filters);
+    if (validationErrors.length > 0) {
+      throw new AppError(`Validation errors: ${validationErrors.join(', ')}`, 400);
+    }
+
+    // Set SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no' // Disable Nginx buffering
+    });
+
+    // Send progress updates
+    const progressCallback = (current: number, total: number) => {
+      res.write(`data: ${JSON.stringify({ type: 'progress', current, total })}\n\n`);
+    };
+
+    try {
+      // Search companies with progress tracking
+      const searchResult = await companiesHouseApi.searchWithFilters(
+        filters, 
+        pageParam, 
+        pageSizeParam,
+        progressCallback
+      );
+
+      // Generate result token
+      const resultToken = crypto.randomBytes(16).toString('hex');
+
+      // Store search snapshot for export
+      if (pool) {
+        try {
+          const query = `
+            INSERT INTO search_snapshots (id, user_id, filters, results, created_at)
+            VALUES ($1, $2, $3, $4, NOW())
+          `;
+          const userId = '00000000-0000-0000-0000-000000000000';
+          await pool.query(query, [
+            resultToken,
+            userId,
+            JSON.stringify(filters),
+            JSON.stringify(searchResult.items)
+          ]);
+        } catch (dbError) {
+          console.warn('Failed to store search snapshot in database:', dbError);
+        }
+      }
+
+      // Send final result
+      const response: SearchResponse = {
+        items: searchResult.items,
+        page: pageParam,
+        total_estimated: searchResult.total,
+        result_token: resultToken
+      };
+
+      res.write(`data: ${JSON.stringify({ type: 'result', result: response })}\n\n`);
+      res.end();
+    } catch (error: any) {
+      // Send error
+      res.write(`data: ${JSON.stringify({ type: 'error', message: error.message })}\n\n`);
+      res.end();
+    }
+  } catch (error) {
+    next(error);
+  }
+};

@@ -131,36 +131,50 @@ async function searchCompanies(page = 1) {
     const sicCodes = getSICCodesForSearch();
     if (sicCodes.length > 0) filters.sic = sicCodes;
     
+    // Officer birth year
+    const officerBirthYear = formData.get('officer_birth_year');
+    if (officerBirthYear && /^\d{4}$/.test(officerBirthYear)) {
+        filters.officer_birth_year = parseInt(officerBirthYear);
+    }
+    
     // Store current filters
     currentFilters = filters;
     currentPage = page;
     
+    const hasOfficerFilter = !!filters.officer_birth_year;
+    
     // Show loading and disable search button
-    showLoading(true);
+    showLoading(true, hasOfficerFilter);
     hideError();
     hideResults();
     setSearchButtonState(true);
     
     try {
-        const response = await fetch('/api/search', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                filters,
-                page,
-                page_size: pageSize
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || 'Search failed');
+        // If we have officer filter, use SSE for progress updates
+        if (hasOfficerFilter) {
+            await searchWithProgress(filters, page);
+        } else {
+            // Regular search
+            const response = await fetch('/api/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    filters,
+                    page,
+                    page_size: pageSize
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'Search failed');
+            }
+            
+            const data = await response.json();
+            displayResults(data);
         }
-        
-        const data = await response.json();
-        displayResults(data);
         
     } catch (error) {
         showError(error.message);
@@ -181,6 +195,32 @@ function getSICCodesForSearch() {
     }
     
     return [...new Set(codes)];
+}
+
+async function searchWithProgress(filters, page) {
+    const eventSource = new EventSource(`/api/search/stream?filters=${encodeURIComponent(JSON.stringify(filters))}&page=${page}&page_size=${pageSize}`);
+    
+    return new Promise((resolve, reject) => {
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'progress') {
+                updateProgress(data.current, data.total);
+            } else if (data.type === 'result') {
+                displayResults(data.result);
+                eventSource.close();
+                resolve();
+            } else if (data.type === 'error') {
+                eventSource.close();
+                reject(new Error(data.message));
+            }
+        };
+        
+        eventSource.onerror = (error) => {
+            eventSource.close();
+            reject(new Error('Connection lost'));
+        };
+    });
 }
 
 function displayResults(data) {
@@ -311,8 +351,34 @@ function resetForm() {
 }
 
 // UI Helper functions
-function showLoading(show) {
-    document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+function showLoading(show, showProgress = false) {
+    const overlay = document.getElementById('loadingOverlay');
+    overlay.style.display = show ? 'flex' : 'none';
+    
+    // Handle progress display
+    const progressContainer = document.getElementById('progressContainer');
+    const loadingHint = document.getElementById('loadingHint');
+    
+    if (show && showProgress) {
+        progressContainer.style.display = 'block';
+        loadingHint.style.display = 'none';
+        startLoadingMessages();
+    } else {
+        progressContainer.style.display = 'none';
+        loadingHint.style.display = 'block';
+        stopLoadingMessages();
+    }
+}
+
+function updateProgress(current, total) {
+    const progressFill = document.getElementById('progressFill');
+    const progressCurrent = document.getElementById('progressCurrent');
+    const progressTotal = document.getElementById('progressTotal');
+    
+    const percentage = (current / total) * 100;
+    progressFill.style.width = percentage + '%';
+    progressCurrent.textContent = current;
+    progressTotal.textContent = total;
 }
 
 function showError(message) {

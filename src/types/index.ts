@@ -7,6 +7,7 @@ export interface CompanySearchFilters {
   incorporated_to?: string;
   postcode_prefix?: string;
   locality?: string;
+  officer_birth_year?: number;
 }
 
 export interface CompanyResult {

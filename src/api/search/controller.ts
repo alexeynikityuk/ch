@@ -121,13 +121,10 @@ export const searchStreamController = async (
     // Send initial connection message
     res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
     if (res.flush) res.flush();
-    console.log('Sent SSE connected message');
     
     // Send progress updates
     const progressCallback = (current: number, total: number) => {
-      const progressData = JSON.stringify({ type: 'progress', current, total });
-      console.log(`Writing SSE progress: ${progressData}`);
-      res.write(`data: ${progressData}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'progress', current, total })}\n\n`);
       // Force flush to ensure client receives the update
       if (res.flush) res.flush();
     };

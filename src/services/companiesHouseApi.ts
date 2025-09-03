@@ -238,7 +238,6 @@ export class CompaniesHouseAPI {
     
     // Send initial progress
     if (progressCallback) {
-      console.log(`Sending initial progress: 0/${totalToCheck}`);
       progressCallback(0, totalToCheck);
     }
     
@@ -286,7 +285,6 @@ export class CompaniesHouseAPI {
       // Update progress
       const currentProgress = Math.min(i + BATCH_SIZE, totalToCheck);
       if (progressCallback) {
-        console.log(`Sending progress: ${currentProgress}/${totalToCheck}`);
         progressCallback(currentProgress, totalToCheck);
       }
       

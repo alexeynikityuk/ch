@@ -44,7 +44,6 @@ class OfficerService {
         );
         
         if (cacheResult.rows.length > 0) {
-          console.log(`Officer cache hit for ${companyNumber}`);
           return cacheResult.rows[0].officers_data as OfficerList;
         }
       } catch (error) {
@@ -66,7 +65,6 @@ class OfficerService {
     }
 
     // 3. Fetch from API if not in cache
-    console.log(`Fetching officers from API for ${companyNumber}`);
     try {
       const response = await this.apiClient.get(`/company/${companyNumber}/officers`);
       const data = response.data as OfficerList;

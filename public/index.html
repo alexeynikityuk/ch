@@ -314,12 +314,19 @@
         .sic-chip {
             background-color: #e3f2fd;
             color: #1976d2;
-            padding: 4px 12px;
+            padding: 4px 8px 4px 12px;
             border-radius: 16px;
             font-size: 14px;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            max-width: 100%;
+        }
+        
+        .sic-chip span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .sic-chip button {
@@ -327,10 +334,18 @@
             border: none;
             color: #1976d2;
             cursor: pointer;
-            padding: 0;
+            padding: 4px 8px;
             margin: 0;
-            font-size: 18px;
+            font-size: 20px;
             line-height: 1;
+            font-weight: bold;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .sic-chip button:hover {
+            background-color: rgba(25, 118, 210, 0.1);
         }
         
         .view-link {

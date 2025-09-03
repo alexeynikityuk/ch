@@ -74,11 +74,19 @@ function updateSICDisplay() {
         const desc = mapping ? mapping.description : `SIC ${code}`;
         return `
             <div class="sic-chip">
-                ${code}
-                <button type="button" onclick="removeSICCode('${code}')" title="${desc}">×</button>
+                <span>${code} - ${desc}</span>
+                <button type="button" class="sic-chip-remove" data-code="${code}" title="Remove ${desc}">×</button>
             </div>
         `;
     }).join('');
+    
+    // Add click handlers to remove buttons
+    container.querySelectorAll('.sic-chip-remove').forEach(button => {
+        button.addEventListener('click', function() {
+            const code = this.getAttribute('data-code');
+            removeSICCode(code);
+        });
+    });
 }
 
 // Search function

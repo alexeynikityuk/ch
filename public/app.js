@@ -13,7 +13,11 @@ const sicSuggestions = document.getElementById('sicSuggestions');
 sicInput.addEventListener('input', (e) => {
     const query = e.target.value.trim();
     
-    if (query.length < 2) {
+    // For numeric input, show suggestions immediately
+    // For text input, require at least 2 characters
+    const minLength = /^\d+$/.test(query) ? 1 : 2;
+    
+    if (query.length < minLength) {
         sicSuggestions.style.display = 'none';
         return;
     }

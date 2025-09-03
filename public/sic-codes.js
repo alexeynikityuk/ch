@@ -58,17 +58,29 @@ function searchSICCodes(query) {
   const normalizedQuery = query.toLowerCase().trim();
   const matches = [];
   
-  // Direct code match - look for exact SIC code
-  if (/^\d{4,5}$/.test(normalizedQuery)) {
-    const exactMatch = sicCodeMappings.find(m => m.code === normalizedQuery);
-    if (exactMatch) {
-      return [exactMatch];
+  // Check if query is numeric (partial or complete SIC code)
+  if (/^\d+$/.test(normalizedQuery)) {
+    // Search for codes that start with the entered numbers
+    for (const mapping of sicCodeMappings) {
+      if (mapping.code.startsWith(normalizedQuery)) {
+        matches.push({ ...mapping, score: 100 - normalizedQuery.length }); // Higher score for shorter queries
+      }
     }
-    // If code not found in our mappings, return generic
-    return [{ code: normalizedQuery, description: `SIC Code ${normalizedQuery}` }];
+    
+    // If we have matches, return them sorted by code
+    if (matches.length > 0) {
+      return matches.sort((a, b) => a.code.localeCompare(b.code)).slice(0, 10);
+    }
+    
+    // If no matches found and it's a complete code, return generic
+    if (normalizedQuery.length >= 4) {
+      return [{ code: normalizedQuery, description: `SIC Code ${normalizedQuery}` }];
+    }
+    
+    return [];
   }
   
-  // Search by keywords and description
+  // Search by keywords and description for non-numeric queries
   for (const mapping of sicCodeMappings) {
     let score = 0;
     

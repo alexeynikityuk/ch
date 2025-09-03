@@ -40,6 +40,7 @@ export const getStatsController = async (
         SUM(search_count) as total_searches,
         (SELECT search_count FROM search_metrics WHERE date = CURRENT_DATE) as today_searches,
         (SELECT SUM(search_count) FROM search_metrics WHERE date >= CURRENT_DATE - INTERVAL '7 days') as week_searches
+      FROM search_metrics
     `;
 
     const summaryResult = await pool.query(summaryQuery);

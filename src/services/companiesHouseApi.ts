@@ -219,13 +219,18 @@ export class CompaniesHouseAPI {
     const filtersWithoutOfficer = { ...filters };
     delete filtersWithoutOfficer.officer_birth_year;
     
-    // For testing, limit to first 100 companies
-    const TEST_LIMIT = 100;
+    // Fetch ALL companies matching the filters (without officer filter)
+    // Note: This could be thousands of companies, so searches may take longer
+    const MAX_RESULTS = 5000; // Companies House API typically limits to 5000 results
     
     // Fetch initial companies
-    const searchResult = await this.advancedSearch(filtersWithoutOfficer, 0, TEST_LIMIT);
+    const searchResult = await this.advancedSearch(filtersWithoutOfficer, 0, MAX_RESULTS);
     const allCompanies = searchResult.items || [];
-    const totalToCheck = Math.min(allCompanies.length, TEST_LIMIT);
+    const totalToCheck = allCompanies.length;
+    
+    if (totalToCheck > 100) {
+      console.log(`Officer search: Checking ${totalToCheck} companies. This may take several minutes...`);
+    }
     
     // Filter companies by officer birth year
     const companiesWithMatchingOfficers: CompanyResult[] = [];

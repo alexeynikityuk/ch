@@ -341,7 +341,6 @@
             right: 0;
             background: white;
             border: 1px solid #ddd;
-            border-top: none;
             border-radius: 0 0 4px 4px;
             max-height: 200px;
             overflow-y: auto;
@@ -523,11 +522,13 @@
                     </div>
                     
                     <!-- Column 4: Industry/SIC codes (spans 2 rows) -->
-                    <div class="form-field sic-autocomplete" style="grid-row: span 2;">
+                    <div class="form-field" style="grid-row: span 2;">
                         <label for="sic">Industry/SIC Codes (Filter)</label>
-                        <input type="text" id="sic" name="sic">
+                        <div class="sic-autocomplete">
+                            <input type="text" id="sic" name="sic">
+                            <div class="sic-suggestions" id="sicSuggestions"></div>
+                        </div>
                         <div class="helper-text">Type industry terms or SIC codes to filter companies by their business activity.</div>
-                        <div class="sic-suggestions" id="sicSuggestions"></div>
                         <div class="selected-sic-chips" id="selectedSICCodes"></div>
                     </div>
                     

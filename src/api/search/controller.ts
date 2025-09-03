@@ -12,6 +12,7 @@ export const searchController = async (
   next: NextFunction
 ) => {
   try {
+    console.log('Search request received:', JSON.stringify(req.body));
     const { filters, page = 1, page_size = 50 } = req.body;
 
     // Validate request

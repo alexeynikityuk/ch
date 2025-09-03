@@ -16,7 +16,8 @@ export class CompaniesHouseAPI {
       throw new Error('CH_API_KEY is not set in environment variables');
     }
     
-    // API key loaded successfully
+    // Log API key info for debugging (first few chars only for security)
+    console.log(`API Key loaded: ${this.apiKey.substring(0, 4)}...`);
 
     this.client = axios.create({
       baseURL: 'https://api.company-information.service.gov.uk',

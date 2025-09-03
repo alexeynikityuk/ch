@@ -224,7 +224,14 @@ export class CompaniesHouseAPI {
     const MAX_RESULTS = 5000; // Companies House API typically limits to 5000 results
     
     // Fetch initial companies
-    const searchResult = await this.advancedSearch(filtersWithoutOfficer, 0, MAX_RESULTS);
+    let searchResult;
+    try {
+      searchResult = await this.advancedSearch(filtersWithoutOfficer, 0, MAX_RESULTS);
+    } catch (error: any) {
+      console.error('Failed to fetch initial companies:', error);
+      throw error;
+    }
+    
     const allCompanies = searchResult.items || [];
     const totalToCheck = allCompanies.length;
     
@@ -411,7 +418,17 @@ export class CompaniesHouseAPI {
     if (axios.isAxiosError(error)) {
       const axiosError = error as AxiosError;
       const status = axiosError.response?.status || 500;
-      const message = (axiosError.response?.data as any)?.error || 'Companies House API error';
+      const data = axiosError.response?.data as any;
+      
+      // Log the full error for debugging
+      console.error('Companies House API Error:', {
+        status,
+        data,
+        url: axiosError.config?.url,
+        params: axiosError.config?.params
+      });
+      
+      const message = data?.error || data?.message || `Companies House API error (${status})`;
       
       throw new AppError(message, status);
     }
